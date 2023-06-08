@@ -13,26 +13,28 @@ macro_rules! read_str {
 }
 
 struct UserVars {
-    ChadsoftId: String,
-    MkwppId: String
+    chadsoft_id: String,
+    mkwpp_id: String
 }
 
 impl Default for UserVars {
     fn default() -> Self {
         UserVars {
-            ChadsoftId: "".to_string(),
-            MkwppId: "".to_string()
+            chadsoft_id: "".to_string(),
+            mkwpp_id: "".to_string()
         }
     }
 }
 
 #[cfg(any(target_os = "linux",target_os="mac_os"))]
 fn clear_terminal() {
-    std::process::Command::new("clear").output().unwrap();
+    let x = std::process::Command::new("clear").output().unwrap().stdout;
+    print!("{}",String::from_utf8(x).unwrap());
 }
 #[cfg(target_os = "windows")]
 fn clear_terminal() {
-    std::process::Command::new("cls").output().unwrap();
+    let x = std::process::Command::new("cls").output().unwrap().stdout;
+    print!("{}",String::from_utf8(x).unwrap());
 }
 
 #[tokio::main]
@@ -43,8 +45,8 @@ async fn main() {
     clear_terminal();
 
     println!("\n\nWelcome to the Automatic Times Updater for Mario Kart Wii!");
-    println!("Just write \"help\" to start if you don't know what you're doing.");
-    println!("\n{}\n\n\n\n\n\n","Written by FalB.".purple());
+    println!("Just write {} to start if you don't know what you're doing.","` help `".bold());
+    println!("\n{} {}{}\n\n\n\n\n\n","Written by".purple(),"FalB".purple().bold().on_bright_magenta(),".".purple());
 
     let config_path = path::Path::new("./config.cfg");
     if !config_path.exists() {
@@ -63,6 +65,7 @@ async fn main() {
     println!(">> {input}\n");
     let args: Vec<&str> = input.split(" ").collect();
     if args.contains(&"q") || args.contains(&"quit") {
+        quit();
         return;
     }
 
@@ -101,9 +104,9 @@ fn read_config() -> UserVars {
                     println!("{} {} {}","You must link your Chadsoft account with".red(),"` --config --chadsoft=<chadsoft-url> `".red().bold(),"!!".red());
                     panic!("");
                 }
-                user_variables.ChadsoftId = val.to_string()
+                user_variables.chadsoft_id = val.to_string()
             },
-            "MKWPPUSER" => user_variables.MkwppId = val.to_string(),
+            "MKWPPUSER" => user_variables.mkwpp_id = val.to_string(),
             _ => continue,
         }
     }
@@ -120,4 +123,9 @@ fn write_config(key: String, val: String) {
     let part_two = split.next().unwrap();
     let overwrite = val + "\n" + part_two.splitn(1,"\n").last().unwrap();
     file.write_all((part_one.to_string()+&split_param+&overwrite).as_bytes()).unwrap();
+}
+
+fn quit() {
+    clear_terminal();
+    println!("Quit the Updater");
 }
