@@ -1,5 +1,7 @@
-use std::{collections::HashMap, path, fs, io::Write};
+use std::{collections::HashMap, path, fs, io::{Write, Cursor}, sync::{Arc, atomic::{AtomicBool, Ordering}}};
 use colored::Colorize;
+
+mod terminal;
 
 #[allow(clippy::needless_return)]
 #[deny(clippy::needless_borrow)]
@@ -26,23 +28,12 @@ impl Default for UserVars {
     }
 }
 
-#[cfg(any(target_os = "linux",target_os="mac_os"))]
-fn clear_terminal() {
-    let x = std::process::Command::new("clear").output().unwrap().stdout;
-    print!("{}",String::from_utf8(x).unwrap());
-}
-#[cfg(target_os = "windows")]
-fn clear_terminal() {
-    let x = std::process::Command::new("cls").output().unwrap().stdout;
-    print!("{}",String::from_utf8(x).unwrap());
-}
-
 #[tokio::main]
 async fn main() {
     let tracks_hash_thread = std::thread::spawn(grab_tracks_hashmap);
     let tracks_arr_thread = std::thread::spawn(grab_tracks_array);
 
-    clear_terminal();
+    terminal::clear();
 
     println!("\n\nWelcome to the Automatic Times Updater for Mario Kart Wii!");
     println!("Just write {} to start if you don't know what you're doing.","` help `".bold());
@@ -60,19 +51,30 @@ async fn main() {
         println!("{} {} {}\n\n","Remember to link your Chadsoft account with".bright_blue(), "` --config --chadsoft=<chadsoft-url> `".bright_blue().bold(), "!!".bright_blue());
     }
 
+    print!("Track Hashmap");
+    while tracks_hash_thread.is_finished() {
+        terminal::loading();
+    };
+    print!(" {}\nTrack Array","✔".green());
+    terminal::flush_stdout();
+    let tracks_hash = tracks_hash_thread.join().unwrap().await;
+    while !tracks_arr_thread.is_finished() {
+        terminal::loading();
+    };
+    print!(" {}\n>> ","✔".green());
+    terminal::flush_stdout();
+    let tracks_arr = tracks_arr_thread.join().unwrap().await;
+
+    // let mut user = read_config();
+
     read_str!(input);
 
-    println!(">> {input}\n");
     let args: Vec<&str> = input.split(" ").collect();
     if args.contains(&"q") || args.contains(&"quit") {
         quit();
         return;
     }
-
-    let user = read_config();
-
-    let tracks_hash = tracks_hash_thread.join().unwrap().await;
-    let tracks_arr = tracks_arr_thread.join().unwrap().await;
+    
 }
 
 async fn grab_tracks_array() -> Vec<[String; 2]> {
@@ -126,6 +128,6 @@ fn write_config(key: String, val: String) {
 }
 
 fn quit() {
-    clear_terminal();
-    println!("Quit the Updater");
+    terminal::clear();
+    println!("{}","bye bye!".green());
 }
