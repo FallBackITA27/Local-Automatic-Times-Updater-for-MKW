@@ -37,6 +37,7 @@ async fn main() {
 
     println!("\n\nWelcome to the Automatic Times Updater for Mario Kart Wii!");
     println!("Just write {} to start if you don't know what you're doing.","` help `".bold());
+    println!("Write {} or {} to exit the program.","` q `".bold(),"` quit `".bold());
     println!("\n{} {}{}\n\n\n","Written by".purple(),"FalB".purple().bold().on_bright_magenta(),".".purple());
 
     let config_path = path::Path::new("./config.cfg");
