@@ -35,10 +35,13 @@ async fn main() {
 
     terminal::clear();
 
-    println!("\n\nWelcome to the Automatic Times Updater for Mario Kart Wii!");
-    println!("Just write {} to start if you don't know what you're doing.","` help `".bold());
-    println!("Write {} or {} to exit the program.","` q `".bold(),"` quit `".bold());
-    println!("\n{} {}{}\n\n\n","Written by".purple(),"FalB".purple().bold().on_bright_magenta(),".".purple());
+    println!("\n\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
+    println!("|\tWelcome to the Automatic Times Updater for Mario Kart Wii!\t\t|");
+    println!("|\tWrite {} to start if you don't know what you're doing.\t\t|","` help `".bold());
+    println!("|\tWrite {} or {} to exit the program.\t\t\t\t|","` q `".bold(),"` quit `".bold());
+    println!("|\t\t\t\t\t\t\t\t\t\t|");
+    println!("|\t{} {}{}\t\t\t\t\t\t\t|","Written by".purple(),"FalB".purple().bold().on_bright_magenta(),".".purple());
+    println!("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n");
 
     let config_path = path::Path::new("./config.cfg");
     if !config_path.exists() {
