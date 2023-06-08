@@ -37,7 +37,7 @@ async fn main() {
 
     println!("\n\nWelcome to the Automatic Times Updater for Mario Kart Wii!");
     println!("Just write {} to start if you don't know what you're doing.","` help `".bold());
-    println!("\n{} {}{}\n\n\n\n\n\n","Written by".purple(),"FalB".purple().bold().on_bright_magenta(),".".purple());
+    println!("\n{} {}{}\n\n\n","Written by".purple(),"FalB".purple().bold().on_bright_magenta(),".".purple());
 
     let config_path = path::Path::new("./config.cfg");
     if !config_path.exists() {
@@ -48,11 +48,13 @@ async fn main() {
         config_file.write_all("MKWPPUSER=\n".as_bytes()).unwrap();
 
         println!("{} {} {}","Created".bright_blue(), "config.cfg".bright_blue().bold(), "file.".bright_blue());
-        println!("{} {} {}\n\n","Remember to link your Chadsoft account with".bright_blue(), "` --config --chadsoft=<chadsoft-url> `".bright_blue().bold(), "!!".bright_blue());
+        println!("{} {}\n\n","Remember to link your Chadsoft account with".bright_blue(), "` cfg --chadsoft=<chadsoft-url> `".bright_blue().bold());
     }
 
+    let mut user_thread = std::thread::spawn(read_config);
+
     print!("Track Hashmap");
-    while tracks_hash_thread.is_finished() {
+    while !tracks_hash_thread.is_finished() {
         terminal::loading();
     };
     print!(" {}\nTrack Array","✔".green());
@@ -61,20 +63,27 @@ async fn main() {
     while !tracks_arr_thread.is_finished() {
         terminal::loading();
     };
-    print!(" {}\n>> ","✔".green());
+    print!(" {}\nUser Data","✔".green());
     terminal::flush_stdout();
     let tracks_arr = tracks_arr_thread.join().unwrap().await;
+    while !user_thread.is_finished() {
+        terminal::loading();
+    };
+    let mut user = user_thread.join().unwrap();
+    print!(" {}\n>> ","✔".green());
+    terminal::flush_stdout();
 
-    // let mut user = read_config();
+    loop {
+        read_str!(input);
+        let args: Vec<&str> = input.split(" ").collect();
+        if args.contains(&"q") || args.contains(&"quit") {
+            quit();
+            break;
+        }
 
-    read_str!(input);
-
-    let args: Vec<&str> = input.split(" ").collect();
-    if args.contains(&"q") || args.contains(&"quit") {
-        quit();
-        return;
+        print!(">> ");
+        terminal::flush_stdout();
     }
-    
 }
 
 async fn grab_tracks_array() -> Vec<[String; 2]> {
@@ -99,16 +108,12 @@ fn read_config() -> UserVars {
         }
         let mut pair = line.split("=");
         let key = pair.next().unwrap();
-        let val = pair.next().unwrap();
+        let val = pair.next().unwrap_or("").to_string();
+        // Do not delete, I should implement this error somewhere in the future.
+        // println!("{} {}","You must link your Chadsoft account with".red(),"` cfg --chadsoft=<chadsoft-url> `".red().bold());
         match key {
-            "CHADSOFTUSER" => {
-                if val.is_empty() {
-                    println!("{} {} {}","You must link your Chadsoft account with".red(),"` --config --chadsoft=<chadsoft-url> `".red().bold(),"!!".red());
-                    panic!("");
-                }
-                user_variables.chadsoft_id = val.to_string()
-            },
-            "MKWPPUSER" => user_variables.mkwpp_id = val.to_string(),
+            "CHADSOFTUSER" => user_variables.chadsoft_id = val,
+            "MKWPPUSER" => user_variables.mkwpp_id = val,
             _ => continue,
         }
     }
