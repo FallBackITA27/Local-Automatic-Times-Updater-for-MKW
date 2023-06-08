@@ -57,20 +57,20 @@ async fn main() {
     while !tracks_hash_thread.is_finished() {
         terminal::loading();
     };
-    print!(" {}\nTrack Array","✔".green());
+    print!("\t[{}]\nTrack Array","✔".green());
     terminal::flush_stdout();
     let tracks_hash = tracks_hash_thread.join().unwrap().await;
     while !tracks_arr_thread.is_finished() {
         terminal::loading();
     };
-    print!(" {}\nUser Data","✔".green());
+    print!("\t[{}]\nUser Data","✔".green());
     terminal::flush_stdout();
     let tracks_arr = tracks_arr_thread.join().unwrap().await;
     while !user_thread.is_finished() {
         terminal::loading();
     };
     let mut user = user_thread.join().unwrap();
-    print!(" {}\n>> ","✔".green());
+    print!("\t[{}]\n\n>> ","✔".green());
     terminal::flush_stdout();
 
     loop {
