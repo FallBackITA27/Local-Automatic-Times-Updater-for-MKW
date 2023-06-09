@@ -1,7 +1,8 @@
-use std::{collections::HashMap, path, fs, io::{Write, Cursor}, sync::{Arc, atomic::{AtomicBool, Ordering}}};
+use std::collections::HashMap;
 use colored::Colorize;
 
 mod terminal;
+mod files;
 
 #[allow(clippy::needless_return)]
 #[deny(clippy::needless_borrow)]
@@ -10,22 +11,36 @@ macro_rules! read_str {
     ($out:ident) => {
         let mut inner = String::new();
         std::io::stdin().read_line(&mut inner).expect("A String");
-        let $out = inner.trim();
+        let $out = inner.trim().to_lowercase();
     };
 }
 
-struct UserVars {
-    chadsoft_id: String,
-    mkwpp_id: String
-}
-
-impl Default for UserVars {
-    fn default() -> Self {
-        UserVars {
-            chadsoft_id: "".to_string(),
-            mkwpp_id: "".to_string()
+// https://rosettacode.org/wiki/Levenshtein_distance#Rust
+fn lev_dist(word1: &str, word2: &str) -> u8 {
+    let w1 = word1.chars().collect::<Vec<_>>();
+    let w2 = word2.chars().collect::<Vec<_>>();
+ 
+    let word1_length = w1.len() + 1;
+    let word2_length = w2.len() + 1;
+ 
+    let mut matrix = vec![vec![0; word1_length]; word2_length];
+ 
+    for i in 1..word1_length { matrix[0][i] = i; }
+    for j in 1..word2_length { matrix[j][0] = j; }
+ 
+    for j in 1..word2_length {
+        for i in 1..word1_length {
+            let x: usize = if w1[i-1] == w2[j-1] {
+                matrix[j-1][i-1]
+            } else {
+                1 + std::cmp::min(
+                        std::cmp::min(matrix[j][i-1], matrix[j-1][i])
+                        , matrix[j-1][i-1])
+            };
+            matrix[j][i] = x;
         }
     }
+    matrix[word2_length-1][word1_length-1] as u8
 }
 
 #[tokio::main]
@@ -33,29 +48,17 @@ async fn main() {
     let tracks_hash_thread = std::thread::spawn(grab_tracks_hashmap);
     let tracks_arr_thread = std::thread::spawn(grab_tracks_array);
 
-    terminal::clear();
+    terminal::welcome_text();
 
-    println!("\n\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
-    println!("|\tWelcome to the Automatic Times Updater for Mario Kart Wii!\t\t|");
-    println!("|\tWrite {} to start if you don't know what you're doing.\t\t|","` help `".bold());
-    println!("|\tWrite {} or {} to exit the program.\t\t\t\t|","` q `".bold(),"` quit `".bold());
-    println!("|\t\t\t\t\t\t\t\t\t\t|");
-    println!("|\t{} {}{}\t\t\t\t\t\t\t|","Written by".purple(),"FalB".purple().bold().on_bright_magenta(),".".purple());
-    println!("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n");
-
-    let config_path = path::Path::new("./config.cfg");
-    if !config_path.exists() {
-        let mut config_file = fs::File::create(config_path).unwrap();
-
-        config_file.write_all("## Do not modify this file manually unless you know what you're doing. Use the CLI to modify the values here. ##\n".as_bytes()).unwrap();
-        config_file.write_all("CHADSOFTUSER=\n".as_bytes()).unwrap();
-        config_file.write_all("MKWPPUSER=\n".as_bytes()).unwrap();
-
-        println!("{} {} {}","Created".bright_blue(), "config.cfg".bright_blue().bold(), "file.".bright_blue());
-        println!("{} {}\n\n","Remember to link your Chadsoft account with".bright_blue(), "` cfg --chadsoft=<chadsoft-url> `".bright_blue().bold());
+    let path = std::path::Path::new("./config.cfg");
+    if !path.exists() {
+        files::create_config(path);
+    } else {
+        std::mem::drop(path);
     }
+    
+    let user_thread = std::thread::spawn(files::read_config);
 
-    let mut user_thread = std::thread::spawn(read_config);
 
     print!("Track Hashmap");
     while !tracks_hash_thread.is_finished() {
@@ -64,29 +67,142 @@ async fn main() {
     print!("\t[{}]\nTrack Array","✔".green());
     terminal::flush_stdout();
     let tracks_hash = tracks_hash_thread.join().unwrap().await;
+    let all_links = tracks_hash.clone().into_keys().collect::<Vec<String>>();
+
     while !tracks_arr_thread.is_finished() {
         terminal::loading();
     };
     print!("\t[{}]\nUser Data","✔".green());
     terminal::flush_stdout();
     let tracks_arr = tracks_arr_thread.join().unwrap().await;
+    
     while !user_thread.is_finished() {
         terminal::loading();
     };
     let mut user = user_thread.join().unwrap();
-    print!("\t[{}]\n\n>> ","✔".green());
+    print!("\t[{}]\n","✔".green());
     terminal::flush_stdout();
 
-    loop {
-        read_str!(input);
-        let args: Vec<&str> = input.split(" ").collect();
-        if args.contains(&"q") || args.contains(&"quit") {
-            quit();
-            break;
-        }
+    let command_list = ["q","quit","help","cfg","run"];
 
-        print!(">> ");
+    loop {
+        print!("\n>> ");
         terminal::flush_stdout();
+        read_str!(input);
+        let args: Vec<&str> = input.trim().split(" ").collect();
+        let arg_0 = args.get(0).unwrap_or(&"").to_owned();
+        match arg_0 {
+            "q" | "quit" => {
+                terminal::quit();
+                break;
+            },
+            "help" => terminal::help_command(),
+            "cfg" => {
+                let key = match args.get(1) {
+                    Some(key) => key.to_owned(),
+                    None => {
+                        println!("{}","Error! No CFG parameter found.".red());
+                        continue;
+                    }
+                };
+                match key {
+                    "chadsoft" => {
+                        let error = "Error! No Chadsoft url found.".red();
+                        let url = match args.get(2) {
+                            Some(key) => key.to_owned(),
+                            None => {
+                                println!("{error}");
+                                continue;
+                            }
+                        };
+                        if !url.contains("chadsoft.co.uk") {
+                            println!("{error}");
+                            continue;
+                        }
+                        if !url.contains("/time-trials/players/") {
+                            println!("{error}");
+                            continue;
+                        };
+                        files::write_config("CHADSOFTUSER".to_string(),url.split(".html").next().unwrap().split("/players/").last().unwrap().to_string().to_uppercase());
+                        let user_thread = std::thread::spawn(files::read_config);
+                        print!("{}","User Data");
+                        terminal::flush_stdout();
+                        while !user_thread.is_finished() {
+                            terminal::loading();
+                        };
+                        user = user_thread.join().unwrap();
+                        print!("\t[{}]\n","✔".green());
+                        println!("{} {} {} {}","Successfully saved".bright_blue(), "CHADSOFTUSER".bright_blue().bold(), "as".bright_blue(), user.chadsoft_id.bright_blue().bold());
+                    },
+                    "mkwpp" => {
+                        let url = match args.get(2) {
+                            Some(key) => key.to_owned(),
+                            None => {
+                                println!("{}","Error! No MKWPP url found.".red());
+                                continue;
+                            }
+                        };
+                        if !url.contains("mariokart64.com") {
+                            println!("{}","Error! No MKWPP url found.".red());
+                            continue;
+                        }
+                        if !url.contains("profile.php?pid=") {
+                            println!("{}","Error! No MKWPP url found.".red());
+                            continue;
+                        };
+                        files::write_config("MKWPPUSER".to_string(),url.split("profile.php?pid=").last().unwrap().to_string());
+                        let user_thread = std::thread::spawn(files::read_config);
+                        print!("{}","User Data");
+                        terminal::flush_stdout();
+                        while !user_thread.is_finished() {
+                            terminal::loading();
+                        };
+                        user = user_thread.join().unwrap();
+                        print!("\t[{}]\n","✔".green());
+                        println!("{} {} {} {}","Successfully saved".bright_blue(), "MKWPPUSER".bright_blue().bold(), "as".bright_blue(), user.mkwpp_id.bright_blue().bold());
+                    },
+                    "reload" => {
+                        let user_thread = std::thread::spawn(files::read_config);
+                        print!("{}","User Data");
+                        terminal::flush_stdout();
+                        while !user_thread.is_finished() {
+                            terminal::loading();
+                        };
+                        user = user_thread.join().unwrap();
+                        print!("\t[{}]\n","✔".green());
+                    },
+                    _ => println!("{}","Error! No valid CFG parameter found.".red())
+                }
+            },
+            "run" => {
+                let mode = match args.get(1) {
+                    Some(mode) => mode.to_owned(),
+                    None => {
+                        println!("{}","Error! No mode found.".red());
+                        continue;
+                    }
+                };
+                match mode {
+                    _ => mkwpp_mode(user.mkwpp_id.clone(),user.chadsoft_id.clone(),tracks_hash.clone(),all_links.clone()).await
+                }
+            }
+            _ => {
+                println!("{} {}",arg_0.red().bold(), "is not a command!".red());
+                let mut min: u8 = u8::MAX;
+                let mut suggestion = "";
+                for command in command_list {
+                    let num = lev_dist(arg_0,command);
+                    if num < min {
+                        min = num;
+                        suggestion = command;
+                        if num < 1 {
+                            break;
+                        }
+                    }
+                }
+                println!("Did you mean {}?",suggestion.bold());
+            }
+        }
     }
 }
 
@@ -102,41 +218,17 @@ async fn grab_tracks_hashmap() -> HashMap<String,String> {
     return json;
 }
 
-fn read_config() -> UserVars {
-    let file = fs::read_to_string("./config.cfg").unwrap();
-    let mut user_variables = UserVars::default();
-    let split = file.split("\n");
-    for line in split {
-        if line.starts_with("#") {
-            continue;
-        }
-        let mut pair = line.split("=");
-        let key = pair.next().unwrap();
-        let val = pair.next().unwrap_or("").to_string();
-        // Do not delete, I should implement this error somewhere in the future.
-        // println!("{} {}","You must link your Chadsoft account with".red(),"` cfg --chadsoft=<chadsoft-url> `".red().bold());
-        match key {
-            "CHADSOFTUSER" => user_variables.chadsoft_id = val,
-            "MKWPPUSER" => user_variables.mkwpp_id = val,
-            _ => continue,
-        }
+async fn grab_times_ctgp(chadsoft_id: String, all_links: Vec<String>) {
+    let url = format!("https://tt.chadsoft.co.uk/players/{}.json",chadsoft_id);
+    let grab_times = reqwest::get(&url);
+    let json: serde_json::Value = serde_json::from_str(grab_times.await.unwrap().text().await.unwrap().as_str()).unwrap();
+    let ghosts = json["ghosts"].as_array().unwrap();
+    for ghost in ghosts {
+
     }
-    return user_variables;
 }
 
-fn write_config(key: String, val: String) {
-    // This is all written assuming the key exists.
-    let mut file = fs::File::open("./config.cfg").unwrap();
-    let file_string = fs::read_to_string("./config.cfg").unwrap();
-    let split_param = key + "=";
-    let mut split = file_string.split(&split_param);
-    let part_one = split.next().unwrap();
-    let part_two = split.next().unwrap();
-    let overwrite = val + "\n" + part_two.splitn(1,"\n").last().unwrap();
-    file.write_all((part_one.to_string()+&split_param+&overwrite).as_bytes()).unwrap();
-}
-
-fn quit() {
-    terminal::clear();
-    println!("{}","bye bye!".green());
+async fn mkwpp_mode(mkwpp_id: String, chadsoft_id: String, track_hash: HashMap<String,String>, all_links: Vec<String>) {
+    let chadsoft_times_thread = std::thread::spawn( move || async { grab_times_ctgp(chadsoft_id, all_links).await });
+    chadsoft_times_thread.join().unwrap().await;
 }
