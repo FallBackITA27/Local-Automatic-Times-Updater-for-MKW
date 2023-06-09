@@ -1,8 +1,9 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
 use colored::Colorize;
 
 mod terminal;
 mod files;
+mod sr;
 
 #[allow(clippy::needless_return)]
 #[deny(clippy::needless_borrow)]
@@ -218,17 +219,58 @@ async fn grab_tracks_hashmap() -> HashMap<String,String> {
     return json;
 }
 
-async fn grab_times_ctgp(chadsoft_id: String, all_links: Vec<String>) {
+async fn grab_times_ctgp(chadsoft_id: String, track_hash: HashMap<String,String>) -> [HashMap<String,(i32,String)>; 2]{
     let url = format!("https://tt.chadsoft.co.uk/players/{}.json",chadsoft_id);
-    let grab_times = reqwest::get(&url);
-    let json: serde_json::Value = serde_json::from_str(grab_times.await.unwrap().text().await.unwrap().as_str()).unwrap();
+    let mut text = reqwest::get(&url).await.unwrap().text().await.unwrap();
+    text.remove(0); // WTF Chadsoft. https://discord.com/channels/485882824881209345/485900922468433920/1102240594174148729 (The Bean Corner Discord).
+    let json: HashMap<String,serde_json::Value> = serde_json::from_str(&text).unwrap();
+    let mut times_3lap_map: HashMap<String,(i32,String)> = HashMap::default();
+    let mut times_flap_map: HashMap<String,(i32,String)> = HashMap::default();
     let ghosts = json["ghosts"].as_array().unwrap();
     for ghost in ghosts {
-
+        let track_link = ghost["_links"]["leaderboard"]["href"].as_str().unwrap().to_string();
+        println!("{track_link}");
+        let track_name = match track_hash.get(&track_link) {
+            Some(t_name) => t_name,
+            None => continue
+        };
+        println!("Test 2");
+        let ghost_time_3lap = sr::time_to_ms(ghost["finishTimeSimple"].as_str().unwrap().to_string());
+        let ghost_time_flap = sr::time_to_ms(ghost["bestSplitSimple"].as_str().unwrap().to_string());
+        let date = ghost["dateSet"].as_str().unwrap().split("T").next().unwrap().to_string();
+        match times_3lap_map.get(track_name) {
+            Some(inserted_time) => if inserted_time.0 > ghost_time_3lap {
+                times_3lap_map.insert(track_name.to_owned().clone(), (ghost_time_3lap, date.clone()));
+            },
+            None => {
+                times_3lap_map.insert(track_name.to_owned().clone(), (ghost_time_3lap, date.clone()));
+            }
+        };
+        match times_flap_map.get(track_name) {
+            Some(inserted_time) => if inserted_time.0 > ghost_time_flap {
+                times_flap_map.insert(track_name.to_owned().clone(), (ghost_time_flap, date));
+            },
+            None => {
+                times_flap_map.insert(track_name.to_owned().clone(), (ghost_time_flap, date));
+            }
+        };
     }
+    return [times_3lap_map,times_flap_map];
 }
 
 async fn mkwpp_mode(mkwpp_id: String, chadsoft_id: String, track_hash: HashMap<String,String>, all_links: Vec<String>) {
-    let chadsoft_times_thread = std::thread::spawn( move || async { grab_times_ctgp(chadsoft_id, all_links).await });
-    chadsoft_times_thread.join().unwrap().await;
+    let mut exit = false;
+    if chadsoft_id.is_empty() {
+        println!("{} {}","You must link your Chadsoft account with".red(),"` cfg chadsoft <chadsoft-url> `".red().bold());
+        exit = true;
+    }
+    if mkwpp_id.is_empty() {
+        println!("{} {}","You must link your MKWPP profile with".red(),"` cfg mkwpp <mkwpp-url> `".red().bold());
+        exit = true;
+    }
+    if exit {
+        return;
+    }
+    let chadsoft_times_thread = std::thread::spawn( move || async { grab_times_ctgp(chadsoft_id, track_hash).await });
+    println!("{:?}",chadsoft_times_thread.join().unwrap().await);
 }

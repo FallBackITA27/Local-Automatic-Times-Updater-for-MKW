@@ -37,8 +37,6 @@ pub fn read_config() -> UserVars {
         let mut pair = line.split("=");
         let key = pair.next().unwrap();
         let val = pair.next().unwrap_or("").to_string();
-        // Do not delete, I should implement this error somewhere in the future.
-        // println!("{} {}","You must link your Chadsoft account with".red(),"` cfg chadsoft <chadsoft-url> `".red().bold());
         match key {
             "CHADSOFTUSER" => user_variables.chadsoft_id = val,
             "MKWPPUSER" => user_variables.mkwpp_id = val,
