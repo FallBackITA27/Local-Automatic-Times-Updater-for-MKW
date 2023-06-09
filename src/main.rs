@@ -46,8 +46,9 @@ fn lev_dist(word1: &str, word2: &str) -> u8 {
 
 #[tokio::main]
 async fn main() {
-    let tracks_hash_thread = std::thread::spawn(grab_tracks_hashmap);
-    let tracks_arr_thread = std::thread::spawn(grab_tracks_array);
+    let tracks_chadsoft_hash_thread = std::thread::spawn(grab_chadsoft_tracks_hashmap);
+    let tracks_chadsoft_arr_thread = std::thread::spawn(grab_chadsoft_tracks_array);
+    let tracks_mkwpp_arr_thread = std::thread::spawn(grab_mkwpp_tracks_array);
 
     terminal::welcome_text();
 
@@ -61,27 +62,34 @@ async fn main() {
     let user_thread = std::thread::spawn(files::read_config);
 
 
-    print!("Track Hashmap");
-    while !tracks_hash_thread.is_finished() {
+    print!("| Chadsoft Track Hashmap");
+    while !tracks_chadsoft_hash_thread.is_finished() {
         terminal::loading();
     };
-    print!("\t[{}]\nTrack Array","✔".green());
+    print!("\t[{}]\n| Chadsoft Track Array","✔".green());
     terminal::flush_stdout();
-    let tracks_hash = tracks_hash_thread.join().unwrap().await;
-    let all_links = tracks_hash.clone().into_keys().collect::<Vec<String>>();
+    let tracks_chadsoft_hash = tracks_chadsoft_hash_thread.join().unwrap().await;
+    let all_chadsoft_links = tracks_chadsoft_hash.clone().into_keys().collect::<Vec<String>>();
 
-    while !tracks_arr_thread.is_finished() {
+    while !tracks_chadsoft_arr_thread.is_finished() {
         terminal::loading();
     };
-    print!("\t[{}]\nUser Data","✔".green());
+    print!("\t\t[{}]\n| MKWPP Track Array","✔".green());
     terminal::flush_stdout();
-    let tracks_arr = tracks_arr_thread.join().unwrap().await;
-    
+    let tracks_chadsoft_arr = tracks_chadsoft_arr_thread.join().unwrap().await;
+
+    while !tracks_mkwpp_arr_thread.is_finished() {
+        terminal::loading();
+    };
+    print!("\t\t[{}]\n| User Data","✔".green());
+    terminal::flush_stdout();
+    let tracks_mkwpp_arr = tracks_mkwpp_arr_thread.join().unwrap().await;
+
     while !user_thread.is_finished() {
         terminal::loading();
     };
     let mut user = user_thread.join().unwrap();
-    print!("\t[{}]\n","✔".green());
+    print!("\t\t\t[{}]\n","✔".green());
     terminal::flush_stdout();
 
     let command_list = ["q","quit","help","cfg","run"];
@@ -184,7 +192,7 @@ async fn main() {
                     }
                 };
                 match mode {
-                    _ => mkwpp_mode(user.mkwpp_id.clone(),user.chadsoft_id.clone(),tracks_hash.clone(),all_links.clone()).await
+                    _ => mkwpp_mode(user.mkwpp_id.clone(),user.chadsoft_id.clone(),tracks_chadsoft_hash.clone(),all_chadsoft_links.clone()).await
                 }
             }
             _ => {
@@ -207,13 +215,19 @@ async fn main() {
     }
 }
 
-async fn grab_tracks_array() -> Vec<[String; 2]> {
+async fn grab_chadsoft_tracks_array() -> Vec<[String; 2]> {
     let json_string = reqwest::get("https://raw.githubusercontent.com/FallBackITA27/MKWPP-MKL-Local-Updater/main/json/cd_track_array.json");
     let json: Vec<[String; 2]> = serde_json::from_str(json_string.await.unwrap().text().await.unwrap().as_str()).unwrap();
     return json;
 }
 
-async fn grab_tracks_hashmap() -> HashMap<String,String> {
+async fn grab_mkwpp_tracks_array() -> Vec<[String; 2]> {
+    let json_string = reqwest::get("https://raw.githubusercontent.com/FallBackITA27/MKWPP-MKL-Local-Updater/main/json/mkwpp_track_array.json");
+    let json: Vec<[String; 2]> = serde_json::from_str(json_string.await.unwrap().text().await.unwrap().as_str()).unwrap();
+    return json;
+}
+
+async fn grab_chadsoft_tracks_hashmap() -> HashMap<String,String> {
     let json_string = reqwest::get("https://raw.githubusercontent.com/FallBackITA27/MKWPP-MKL-Local-Updater/main/json/cd_track_mapping.json");
     let json: HashMap<String,String> = serde_json::from_str(json_string.await.unwrap().text().await.unwrap().as_str()).unwrap();
     return json;
@@ -229,12 +243,10 @@ async fn grab_times_ctgp(chadsoft_id: String, track_hash: HashMap<String,String>
     let ghosts = json["ghosts"].as_array().unwrap();
     for ghost in ghosts {
         let track_link = ghost["_links"]["leaderboard"]["href"].as_str().unwrap().to_string();
-        println!("{track_link}");
         let track_name = match track_hash.get(&track_link) {
             Some(t_name) => t_name,
             None => continue
         };
-        println!("Test 2");
         let ghost_time_3lap = sr::time_to_ms(ghost["finishTimeSimple"].as_str().unwrap().to_string());
         let ghost_time_flap = sr::time_to_ms(ghost["bestSplitSimple"].as_str().unwrap().to_string());
         let date = ghost["dateSet"].as_str().unwrap().split("T").next().unwrap().to_string();
@@ -272,5 +284,8 @@ async fn mkwpp_mode(mkwpp_id: String, chadsoft_id: String, track_hash: HashMap<S
         return;
     }
     let chadsoft_times_thread = std::thread::spawn( move || async { grab_times_ctgp(chadsoft_id, track_hash).await });
-    println!("{:?}",chadsoft_times_thread.join().unwrap().await);
+    
+    
+    
+    chadsoft_times_thread.join().unwrap().await;
 }
