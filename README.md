@@ -13,3 +13,5 @@ You can discard the /json/ folder.
 It's not necessary, the program fetches those resources on its own.
 
 Just run `cargo build --release`. To install cargo and the rust toolchain, visit [rustup.rs](https://rustup.rs/)
+
+If you're extra-lazy, use `linux-build-script.sh` or `windows-build-script.ps1`.
