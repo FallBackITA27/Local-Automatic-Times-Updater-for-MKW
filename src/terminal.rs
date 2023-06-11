@@ -17,14 +17,14 @@ fn print_loading_dot() {
 
 fn move_cursor_back(num: u8) {
     const BACKSPACE: char = 8u8 as char;
-	for i in 0..num {
+	for _ in 0..num {
 		print!("{}",BACKSPACE);
 	}
 }
 
 fn delete_written(num: u8) {
 	move_cursor_back(num);
-    for i in 0..num {
+    for _ in 0..num {
         print!(" ");
     }
 }
@@ -76,6 +76,7 @@ pub fn help_command() {
 	println!("{separator_line}");
 	println!("| {} <chadsoft-url>\tSets up your CTGP profile\t\t\t|","chadsoft".bold());
 	println!("| {} <mkwpp-url>\t\tSets up your MKWPP profile\t\t\t|","mkwpp".bold());
+	println!("| {} <mkl-url>\t\t\tSets up your MKL profile\t\t\t|","mkl".bold());
 	println!("| {}\t\t\tReloads the config\t\t\t\t|","reload".bold());
 	println!("{empty_line}");
 	println!("===========   RUN OPTIONS    ====================================================");
@@ -83,6 +84,7 @@ pub fn help_command() {
 	println!("{separator_line}");
 	println!("| {} [mode]\t\t\tRuns the updater for the MKWPP. The mode can be\t|","mkwpp".bold());
 	println!("| \t\t\t\teither flap, 3lap, or not be set for both. {}|","(WIP)".red());
+	println!("| {}\t\t\t\tRuns the updater for MKL.\t\t\t|","mkl".bold());
 	println!("{empty_line}");
 	println!("=================================================================================");
 }

@@ -3,14 +3,16 @@ use std::io::Write;
 
 pub struct UserVars {
     pub chadsoft_id: String,
-    pub mkwpp_id: String
+    pub mkwpp_id: String,
+    pub mkl_id: String
 }
 
 impl Default for UserVars {
     fn default() -> Self {
         UserVars {
             chadsoft_id: "".to_string(),
-            mkwpp_id: "".to_string()
+            mkwpp_id: "".to_string(),
+            mkl_id: "".to_string()
         }
     }
 }
@@ -21,6 +23,7 @@ pub fn create_config(path: &std::path::Path) {
     config_file.write_all("## Do not modify this file manually unless you know what you're doing. Use the CLI to modify the values here. ##\n".as_bytes()).unwrap();
     config_file.write_all("CHADSOFTUSER=\n".as_bytes()).unwrap();
     config_file.write_all("MKWPPUSER=\n".as_bytes()).unwrap();
+    config_file.write_all("MKLUSER=\n".as_bytes()).unwrap();
 
     println!("{} {} {}","Created".bright_blue(), "config.cfg".bright_blue().bold(), "file.".bright_blue());
     println!("{} {}\n\n","Remember to link your Chadsoft account with".bright_blue(), "` cfg chadsoft <chadsoft-url> `".bright_blue().bold());
@@ -29,17 +32,18 @@ pub fn create_config(path: &std::path::Path) {
 pub fn read_config() -> UserVars {
     let file = std::fs::read_to_string("./config.cfg").unwrap();
     let mut user_variables = UserVars::default();
-    let split = file.split("\n");
+    let split = file.split('\n');
     for line in split {
-        if line.starts_with("#") {
+        if line.starts_with('#') {
             continue;
         }
-        let mut pair = line.split("=");
+        let mut pair = line.split('=');
         let key = pair.next().unwrap();
         let val = pair.next().unwrap_or("").to_string();
         match key {
             "CHADSOFTUSER" => user_variables.chadsoft_id = val,
             "MKWPPUSER" => user_variables.mkwpp_id = val,
+            "MKLUSER" => user_variables.mkl_id = val,
             _ => continue,
         }
     }
@@ -56,7 +60,7 @@ pub fn write_config(key: String, val: String) {
     let mut split = file_string.split(&split_param);
     let part_one = split.next().unwrap();
     let part_two = split.next().unwrap_or("");
-    let overwrite = val + "\n" + part_two.splitn(2,"\n").last().unwrap_or("");
+    let overwrite = val + "\n" + part_two.splitn(2,'\n').last().unwrap_or("");
     file.write_all((part_one.to_string()+&split_param+&overwrite).as_bytes()).unwrap();
 }
 
@@ -64,4 +68,5 @@ pub fn write_config(key: String, val: String) {
 ## Do not modify this file manually unless you know what you're doing. Use the CLI to modify the values here. ##
 CHADSOFTUSER=1f/7b7d3331a3a008.html
 MKWPPUSER=1662
+MKLUSER=2450
 */
