@@ -51,6 +51,7 @@ async fn main() {
     let tracks_chadsoft_arr_thread = std::thread::spawn(grab_chadsoft_tracks_array);
     let tracks_mkwpp_arr_thread = std::thread::spawn(grab_mkwpp_tracks_array);
 
+    if cfg!(windows) { std::process::Command::new("chcp").arg("65001"); }
     terminal::welcome_text();
 
     let path = std::path::Path::new("./config.cfg");
