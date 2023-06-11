@@ -1,6 +1,5 @@
 Remove-Item ./json -Recurse
 Remove-Item ./.gitignore
-Remove-Item ./cargo.*
 Remove-Item ./current_version
 Remove-Item ./readme.md
 $path = "./releases"

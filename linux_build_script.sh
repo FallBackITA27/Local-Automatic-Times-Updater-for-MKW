@@ -1,6 +1,5 @@
 rm json
 rm .gitignore
-rm cargo*
 rm current_version
 rm readme.md
 mkdir ./releases
