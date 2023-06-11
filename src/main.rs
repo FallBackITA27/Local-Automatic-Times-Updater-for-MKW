@@ -256,7 +256,7 @@ async fn grab_chadsoft_tracks_hashmap() -> HashMap<String,String> {
     return json;
 }
 
-async fn grab_times_ctgp(chadsoft_id: String, track_hash: HashMap<String,String>) -> [HashMap<String,(i32,String,String,String)>; 2]{
+async fn grab_times_ctgp(chadsoft_id: String, track_hash: HashMap<String,String>) -> [HashMap<String,(i32,String,String,String)>; 2] {
     let url = format!("https://tt.chadsoft.co.uk/players/{}.json",chadsoft_id);
     let mut text = reqwest::get(&url).await.unwrap().text().await.unwrap();
     text.remove(0); // WTF Chadsoft. https://discord.com/channels/485882824881209345/485900922468433920/1102240594174148729 (The Bean Corner Discord).
@@ -306,7 +306,7 @@ async fn grab_times_ctgp(chadsoft_id: String, track_hash: HashMap<String,String>
     return [times_3lap_map,times_flap_map];
 }
 
-async fn grab_times_mkwpp(mkwpp_id: String, track_arr: Vec<String>) {
+async fn grab_times_mkwpp(mkwpp_id: String, track_arr: Vec<String>) -> [HashMap<String,i32>; 2] {
     let url = format!("https://www.mariokart64.com/mkw/profile.php?pid={}",mkwpp_id);
     let player_page_req = reqwest::get(&url);
 
@@ -385,20 +385,19 @@ async fn grab_times_mkwpp(mkwpp_id: String, track_arr: Vec<String>) {
         }
         let time_string = time_split.split('>').last().unwrap().replace('\'',":").replace('"',".");
         let track_name = track_arr.get(track_arr_ind as usize).unwrap().to_owned();
-        println!("{track_name} | {track_arr_ind} | {time_string}");
         let time = sr::time_to_ms(time_string);
         
 
         if flap {
             match times_flap_map.get(track_name.split('_').next().unwrap()) {
-                Some(ng_time) => if ng_time >= &time { times_flap_map.insert(track_name, time); },
+                Some(ng_time) => if ng_time < &time { times_flap_map.insert(track_name, time); },
                 None => { times_flap_map.insert(track_name, time); }
             }
             track_arr_ind+=1;
             flap = false;
         } else {
             match times_3lap_map.get(track_name.split('_').next().unwrap()) {
-                Some(ng_time) => if ng_time >= &time { times_3lap_map.insert(track_name, time); },
+                Some(ng_time) => if ng_time < &time { times_3lap_map.insert(track_name, time); },
                 None => { times_3lap_map.insert(track_name, time); }
             }
             flap = true;
@@ -406,8 +405,7 @@ async fn grab_times_mkwpp(mkwpp_id: String, track_arr: Vec<String>) {
         skip = true;
     }
 
-    println!("{times_3lap_map:?}");
-    println!("{times_flap_map:?}");
+    return [times_3lap_map, times_flap_map];
 }
 
 async fn mkwpp_mode(mkwpp_id: String, chadsoft_id: String, chadsoft_track_hash: HashMap<String,String>, mkwpp_track_arr: Vec<String>) {
@@ -430,16 +428,17 @@ async fn mkwpp_mode(mkwpp_id: String, chadsoft_id: String, chadsoft_track_hash: 
     while !chadsoft_times_thread.is_finished() {
         terminal::loading();
     }
-    print!("\t[{}]","✔".green());
-    let cdpbs = chadsoft_times_thread.join().unwrap().await;
-    print!("\nMKW Players' Page PBs and Data");
+    println!("\t[{}]","✔".green());
+    let ctgp_pbs = chadsoft_times_thread.join().unwrap().await;
+    print!("MKW Players' Page PBs and Data");
     terminal::flush_stdout();
     while !mkwpp_thread.is_finished() {
         terminal::loading();
     }
-    print!("\t[{}]\n\n","✔".green());
+    println!("\t[{}]\n","✔".green());
     terminal::flush_stdout();
-    mkwpp_thread.join().unwrap().await;
+    let mkwpp_pbs = mkwpp_thread.join().unwrap().await;
+
 }
 
 async fn grab_times_mkl(mkl_id: String) {
@@ -481,7 +480,7 @@ async fn mkl_mode(mkl_id: String, chadsoft_id: String, chadsoft_track_hash: Hash
     println!("\nTo make this work, you have to trust this program with sensitive information.");
     println!("To submit to MKL, you need to give it your CSRF Token, which is basically your");
     println!("session Token for MKL. The program will not save this even locally.");
-    println!("If you don't trust it, check the source code or don't use it.");
+    println!("If you don't trust it, I invite you to check the source code, or just don't use it.");
     println!("Do you wanna continue? Y for yes, N for no.\n");
     print!(">> ");
     terminal::flush_stdout();

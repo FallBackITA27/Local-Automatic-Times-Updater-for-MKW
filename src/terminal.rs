@@ -82,8 +82,7 @@ pub fn help_command() {
 	println!("===========   RUN OPTIONS    ====================================================");
 	println!("| All commands in this tab are preceded by {}\t\t\t\t\t|", "run".bold());
 	println!("{separator_line}");
-	println!("| {} [mode]\t\t\tRuns the updater for the MKWPP. The mode can be\t|","mkwpp".bold());
-	println!("| \t\t\t\teither flap, 3lap, or not be set for both. {}|","(WIP)".red());
+	println!("| {} [mode]\t\t\tRuns the updater for the MKWPP. {}\t\t|","mkwpp".bold(),"(WIP)".red());
 	println!("| {}\t\t\t\tRuns the updater for MKL.\t\t\t|","mkl".bold());
 	println!("{empty_line}");
 	println!("=================================================================================");
