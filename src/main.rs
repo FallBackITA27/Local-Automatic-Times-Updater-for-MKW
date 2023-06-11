@@ -339,8 +339,6 @@ async fn grab_times_mkwpp(mkwpp_id: String, track_arr: Vec<String>) {
             }
         }
 
-        println!("{track_arr_ind}");
-
         let time_split;
         if flap {
             time_split = row.split("</a").nth(0).unwrap();
@@ -387,6 +385,7 @@ async fn grab_times_mkwpp(mkwpp_id: String, track_arr: Vec<String>) {
         }
         let time_string = time_split.split('>').last().unwrap().replace('\'',":").replace('"',".");
         let track_name = track_arr.get(track_arr_ind as usize).unwrap().to_owned();
+        println!("{track_name} | {track_arr_ind} | {time_string}");
         let time = sr::time_to_ms(time_string);
         
 
