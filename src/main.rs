@@ -269,275 +269,20 @@ async fn grab_chadsoft_tracks_hashmap() -> HashMap<String,String> {
     return json;
 }
 
-fn filter_ctgp_hashmap(mut ctgp_hashmap: HashMap<String,(i32,String,String,String)>) -> HashMap<String,(i32,String,String,String)> {
-    for time in ctgp_hashmap.clone() {
-        let track_name = time.0;
-        if !track_name.contains('_') { continue }
-        if track_name.contains("_sc") {
-            match ctgp_hashmap.get(track_name.split('_').next().unwrap()) {
-                Some(time_tuple) => if time.1.0 > time_tuple.0 {
-                    ctgp_hashmap.remove(&track_name);
-                },
-                None => continue
-            }
-        } else if track_name.contains("_g") {
-            if let Some(time_tuple) = ctgp_hashmap.get(track_name.split('_').next().unwrap()) {
-                if time.1.0 > time_tuple.0 {
-                    ctgp_hashmap.remove(&track_name);
-                    continue;
-                }
-            }
-            if let Some(time_tuple) = ctgp_hashmap.get(&track_name.replace("_g","_sc")) {
-                if time.1.0 > time_tuple.0 {
-                    ctgp_hashmap.remove(&track_name);
-                    continue;
-                }
-            }
-        }
-    }
-    return ctgp_hashmap;
-}
-
-async fn grab_times_ctgp(chadsoft_id: String, track_hash: HashMap<String,String>) -> [HashMap<String,(i32,String,String,String)>; 2] {
-    let url = format!("https://tt.chadsoft.co.uk/players/{}.json",chadsoft_id);
-    let mut text = reqwest::get(&url).await.unwrap().text().await.unwrap();
-    text.remove(0); // WTF Chadsoft. https://discord.com/channels/485882824881209345/485900922468433920/1102240594174148729 (The Bean Corner Discord).
-    let json: HashMap<String,serde_json::Value> = match serde_json::from_str(&text) {
-        Ok(json) => json,
-        Err(error) => {
-            let err_str = error.to_string();
-            if err_str.contains("The resource cannot be found.") {
-                panic!("Chadsoft is down, it cannot load the data.");
-            } else {
-                panic!("{text}, {error}");
-            }
-        }
-    };
-    let mut times_3lap_map: HashMap<String,(i32,String,String,String)> = HashMap::default();
-    let mut times_flap_map: HashMap<String,(i32,String,String,String)> = HashMap::default();
-    let ghosts = json["ghosts"].as_array().unwrap();
-    for ghost in ghosts {
-        let track_link = ghost["_links"]["leaderboard"]["href"].as_str().unwrap().to_string();
-        let track_name = match track_hash.get(&track_link) {
-            Some(t_name) => t_name,
-            None => continue
-        };
-        let time_string_3lap = ghost["finishTimeSimple"].as_str().unwrap().to_string();
-        let ghost_time_3lap = sr::time_to_ms(time_string_3lap.clone());
-        let time_string_flap = ghost["bestSplitSimple"].as_str().unwrap().to_string();
-        let ghost_time_flap = sr::time_to_ms(time_string_flap.clone());
-        let ghost_link = ghost["_links"]["item"]["href"].as_str().unwrap().replace("json", "html").to_string();
-        let date = ghost["dateSet"].as_str().unwrap().split('T').next().unwrap().to_string();
-        match times_3lap_map.get(track_name) {
-            Some(inserted_time) => if inserted_time.0 > ghost_time_3lap {
-                times_3lap_map.insert(track_name.to_owned().clone(), (ghost_time_3lap, time_string_3lap, date.clone(), ghost_link.clone()));
-            },
-            None => {
-                times_3lap_map.insert(track_name.to_owned().clone(), (ghost_time_3lap, time_string_3lap, date.clone(), ghost_link.clone()));
-            }
-        };
-        match times_flap_map.get(track_name) {
-            Some(inserted_time) => if inserted_time.0 > ghost_time_flap {
-                times_flap_map.insert(track_name.to_owned().clone(), (ghost_time_flap, time_string_flap, date, ghost_link));
-            },
-            None => {
-                times_flap_map.insert(track_name.to_owned().clone(), (ghost_time_flap, time_string_flap, date, ghost_link));
-            }
-        };
-    }
-
-    return [std::thread::spawn(move || { filter_ctgp_hashmap(times_3lap_map) }).join().unwrap(),std::thread::spawn(move || { filter_ctgp_hashmap(times_flap_map) }).join().unwrap()];
-}
-
-async fn grab_name_mkwpp(mkwpp_id: String) -> String {
-    let url = format!("https://www.mariokart64.com/mkw/profile.php?pid={}",mkwpp_id);
-    let player_page_req = reqwest::get(&url);
-    let player_page = player_page_req.await.unwrap().text().await.unwrap();
-    let mut split = player_page.split("MKW Profile: ").last().unwrap();
-    return "Name: ".to_string() + split.split("&nbsp;").next().unwrap();
-}
-
-
-async fn grab_times_mkwpp(mkwpp_id: String, track_arr: Vec<String>) -> [HashMap<String,i32>; 2] {
-    let url = format!("https://www.mariokart64.com/mkw/profile.php?pid={}",mkwpp_id);
-    let player_page_req = reqwest::get(&url);
-
-    let mut skip = false;
-    let mut flap = false;
-    let mut track_arr_ind: u8 = 0;
-    let mut times_3lap_map: HashMap<String,i32> = HashMap::default();
-    let mut times_flap_map: HashMap<String,i32> = HashMap::default();
-
-    let player_page = player_page_req.await.unwrap().text().await.unwrap();
-    let mut split = player_page.split("table");
-    let sc_body = split.nth(20).unwrap();
-
-    let nosc_body = split.nth(3).unwrap();
-    let mut split_rows_nosc = nosc_body.split("tr");
-    split_rows_nosc.nth(2);
-
-    for row in split_rows_nosc {
-        if skip {
-            skip = false;
-            continue;
-        }
-        if row.contains("Totals") {
-            break;
-        }
-        if row.contains("NT") {
-            if flap {
-                track_arr_ind+=1;
-                flap = false;
-            } else {
-                flap = true;
-            }
-        }
-
-        let time_split;
-        if flap {
-            time_split = row.split("</a").nth(0).unwrap();
-        } else {
-            time_split = row.split("</a").nth(1).unwrap();
-        }
-        let time_string = time_split.split('>').last().unwrap().replace('\'',":").replace('"',".");
-
-        if flap {
-            times_flap_map.insert(track_arr.get(track_arr_ind as usize).unwrap().to_owned(), sr::time_to_ms(time_string));
-            track_arr_ind+=1;
-            flap = false;
-        } else {
-            times_3lap_map.insert(track_arr.get(track_arr_ind as usize).unwrap().to_owned(), sr::time_to_ms(time_string));
-            flap = true;
-        }
-        skip = true;
-    }
-
-    let mut split_rows_sc = sc_body.split("tr");
-    split_rows_sc.nth(2);
-
-    for row in split_rows_sc {
-        if skip {
-            skip = false;
-            continue;
-        }
-        if row.contains("Totals") {
-            break;
-        }
-        if row.contains("NT") {
-            if flap {
-                track_arr_ind+=1;
-                flap = false;
-            } else {
-                flap = true;
-            }
-        }
-
-        let time_split;
-        if flap {
-            time_split = row.split("</a").nth(0).unwrap();
-        } else {
-            time_split = row.split("</a").nth(1).unwrap();
-        }
-        let time_string = time_split.split('>').last().unwrap().replace('\'',":").replace('"',".");
-        let track_name = track_arr.get(track_arr_ind as usize).unwrap().to_owned();
-        let time = sr::time_to_ms(time_string);
-        
-
-        if flap {
-            match times_flap_map.get(track_name.split('_').next().unwrap()) {
-                Some(ng_time) => if ng_time > &time { times_flap_map.insert(track_name, time); },
-                None => { times_flap_map.insert(track_name, time); }
-            }
-            track_arr_ind+=1;
-            flap = false;
-        } else {
-            match times_3lap_map.get(track_name.split('_').next().unwrap()) {
-                Some(ng_time) => if ng_time > &time { times_3lap_map.insert(track_name, time); },
-                None => { times_3lap_map.insert(track_name, time); }
-            }
-            flap = true;
-        }
-        skip = true;
-    }
-
-    return [times_3lap_map, times_flap_map];
-}
-
-fn compare_ctgp_mkwpp(mut ctgp_hashmap: HashMap<String, (i32, String, String, String)>, mkwpp_hashmap: HashMap<String, i32>) -> HashMap<String,(String, i32)> {
-    // TODO: I should make this a better macro eventually.
-    macro_rules! remove_superfluous_category {
-        ($track: expr) => {
-            // if glitch time > sc time is already handled in the ctgp filter.
-            if ctgp_hashmap.contains_key(concat!($track,"_sc")) && ctgp_hashmap.contains_key(concat!($track,"_g")) {
-                ctgp_hashmap.remove(concat!($track,"_sc"));
-            }
-        };
-    }
-    remove_superfluous_category!("mg");
-    remove_superfluous_category!("cm");
-    remove_superfluous_category!("gv");
-    remove_superfluous_category!("rbc");
-    let mut pbs_hashmap: HashMap<String,(String, i32)> = HashMap::default();
-    for ctgp_time in ctgp_hashmap {
-        let mut track_name = ctgp_time.0.clone();
-        let mut originally = track_name.clone();
-        if track_name.contains("_g") {
-            if let Some(mkwpp_comparison) = mkwpp_hashmap.get(&track_name) {
-                if mkwpp_comparison > &ctgp_time.1.0 {
-                    pbs_hashmap.insert(originally, (ctgp_time.1.2.clone(), ctgp_time.1.0));
-                    continue;
-                }
-                continue;
-            }
-        }
-        track_name = track_name.replace("_g","_sc");
-        if track_name.contains("_sc") {
-            if let Some(mkwpp_comparison) = mkwpp_hashmap.get(&track_name) {
-                if mkwpp_comparison > &ctgp_time.1.0 {
-                    pbs_hashmap.insert(originally, (ctgp_time.1.2.clone(), ctgp_time.1.0));
-                    continue;
-                }
-                continue;
-            }
-        }
-        track_name = track_name.split('_').nth(0).unwrap().to_string();
-        match mkwpp_hashmap.get(&track_name) {
-            Some(mkwpp_comparison) => if mkwpp_comparison > &ctgp_time.1.0 {
-                pbs_hashmap.insert(originally, (ctgp_time.1.2.clone(), ctgp_time.1.0));
-            },
-            None => {
-                pbs_hashmap.insert(originally, (ctgp_time.1.2.clone(), ctgp_time.1.0));
-            }
-        }
-    }
-    return pbs_hashmap;
-}
-
-fn get_correct_abbreviation_mkwpp(track: String, mkwpp_combined_track_arr:  Vec<String>) -> String {
-    let mut out = track.split('_').next().unwrap().to_uppercase();
-    if track.starts_with('r') && track != "rr".to_string() {
-        out.replace_range(0..1, "r");
-    };
-    if mkwpp_combined_track_arr.contains(&track) {
-        out += " nosc";
-    }
-    return out;
-}
-
 async fn mkwpp_mode(mkwpp_id: String, chadsoft_id: String, chadsoft_track_hash: HashMap<String,String>, mkwpp_track_arr: Vec<String>, mkwpp_combined_track_arr:  Vec<String>) {
     let mut exit = false;
     if chadsoft_id.is_empty() {
         println!("{} {}","You must link your Chadsoft account with".red(),"` cfg chadsoft <chadsoft-url> `".red().bold());
         exit = true;
     }
-    let chadsoft_times_thread = std::thread::spawn( move || async { grab_times_ctgp(chadsoft_id, chadsoft_track_hash).await });
+    let chadsoft_times_thread = std::thread::spawn( move || async { sr::grab_times_ctgp(chadsoft_id, chadsoft_track_hash).await });
     if mkwpp_id.is_empty() {
         println!("{} {}","You must link your MKWPP profile with".red(),"` cfg mkwpp <mkwpp-url> `".red().bold());
         exit = true;
     }
     let mkwpp_for_name = mkwpp_id.clone();
-    let mkwpp_thread = std::thread::spawn( move || async { grab_times_mkwpp(mkwpp_id, mkwpp_track_arr).await });
-    let mkwpp_grab_name = std::thread::spawn( move || async { grab_name_mkwpp(mkwpp_for_name).await });
+    let mkwpp_thread = std::thread::spawn( move || async { sr::grab_times_mkwpp(mkwpp_id, mkwpp_track_arr).await });
+    let mkwpp_grab_name = std::thread::spawn( move || async { sr::grab_name_mkwpp(mkwpp_for_name).await });
     if exit {
         return;
     }
@@ -564,8 +309,8 @@ async fn mkwpp_mode(mkwpp_id: String, chadsoft_id: String, chadsoft_track_hash: 
     let mkwpp_3lap = mkwpp_pbs.get(0).unwrap().to_owned();
     let mkwpp_flap = mkwpp_pbs.get(1).unwrap().to_owned();
     
-    let final_3lap_pbs_thread = std::thread::spawn( move || { compare_ctgp_mkwpp(ctgp_3lap, mkwpp_3lap) });
-    let final_flap_pbs_thread = std::thread::spawn( move || { compare_ctgp_mkwpp(ctgp_flap, mkwpp_flap) });
+    let final_3lap_pbs_thread = std::thread::spawn( move || { sr::compare_ctgp_mkwpp(ctgp_3lap, mkwpp_3lap) });
+    let final_flap_pbs_thread = std::thread::spawn( move || { sr::compare_ctgp_mkwpp(ctgp_flap, mkwpp_flap) });
 
     print!("Comparing 3lap Times");
     terminal::flush_stdout();
@@ -576,7 +321,6 @@ async fn mkwpp_mode(mkwpp_id: String, chadsoft_id: String, chadsoft_track_hash: 
     terminal::flush_stdout();
     let final_3lap_pbs = final_3lap_pbs_thread.join().unwrap();
     let mut empty_3lap = false;
-    let mut empty_flap = false;
     if final_3lap_pbs.is_empty() {
         println!("You have no unsubmitted 3lap PBs");
         empty_3lap = true;
@@ -592,39 +336,54 @@ async fn mkwpp_mode(mkwpp_id: String, chadsoft_id: String, chadsoft_track_hash: 
             println!("Stopping");
             return;
         }
-        empty_flap = true;
     }
+    let mut final_pbs: Vec<(bool, String, String, i32)> = vec![];
+    for (track_name, (date, time)) in final_3lap_pbs {
+        final_pbs.push((false,track_name,date,time));
+    }
+    for (track_name, (date, time)) in final_flap_pbs {
+        final_pbs.push((true,track_name,date,time));
+    }
+    final_pbs.sort_by(|a,b| a.0.cmp(&b.0));
+    final_pbs.sort_by(|a,b| a.1.cmp(&b.1));
+    final_pbs.sort_by(|a,b| a.2.cmp(&b.2));
     let mut output = String::new();
-    if !empty_3lap {
-        for time in final_3lap_pbs {
-            output += &format!("Date: {}\n{}\n\n{}: {}\n\n",sr::date_to_full_date(time.1.0),mkwpp_name,get_correct_abbreviation_mkwpp(time.0,mkwpp_combined_track_arr.clone()),sr::ms_to_time(time.1.1));
+    let mut last_date = String::new();
+    let mut last_track_name = String::new();
+    for (is_flap, track_name, date, time) in final_pbs {
+        if last_date != date {
+            if is_flap {
+                output += &format!("\n\n\nDate: {}\n{}\n\n{} flap {}",
+                    sr::date_to_full_date(date.clone()),
+                    mkwpp_name,
+                    sr::get_correct_abbreviation_mkwpp(track_name.clone(),mkwpp_combined_track_arr.clone()),
+                    sr::ms_to_time(time)
+                );
+            } else {
+                output += &format!("\n\n\nDate: {}\n{}\n\n{} {}",
+                    sr::date_to_full_date(date.clone()),
+                    mkwpp_name,
+                    sr::get_correct_abbreviation_mkwpp(track_name.clone(),mkwpp_combined_track_arr.clone()),
+                    sr::ms_to_time(time)
+                );
+            }
+        } else {
+            if is_flap {
+                if track_name == last_track_name {
+                    output += &format!(" / {}",sr::ms_to_time(time));
+                } else {
+                    output += &format!("\n{} flap {}",sr::get_correct_abbreviation_mkwpp(track_name.clone(),mkwpp_combined_track_arr.clone()),sr::ms_to_time(time));
+                }
+            } else {
+                output += &format!("\n{} {}",sr::get_correct_abbreviation_mkwpp(track_name.clone(),mkwpp_combined_track_arr.clone()),sr::ms_to_time(time));
+            }
         }
-    } else {
-        for time in final_3lap_pbs {
-            output += &format!("Date: {}\n{}\n\n{}: {}\n\n",sr::date_to_full_date(time.1.0),mkwpp_name,get_correct_abbreviation_mkwpp(time.0,mkwpp_combined_track_arr.clone()),sr::ms_to_time(time.1.1));
-        }
+        last_track_name = track_name;
+        last_date = date;
     }
+    println!("The output has been written to ./output.txt");
     let mut output_file = std::fs::File::create("./output.txt").unwrap();
     output_file.write_all(output.as_bytes()).unwrap();
-}
-
-async fn grab_times_mkl(mkl_id: String) {
-    let url = format!("https://www.mkleaderboards.com/mkw/players/{}",mkl_id);
-    let web_page = reqwest::get(&url).await.unwrap().text().await.unwrap();
-    if web_page.len() < 20 || web_page.contains("502 Bad Gateway") {
-        panic!("MKLeaderboards is down. Try again later.");
-    }
-    println!("{web_page}");
-    /*
-    let mut bodies = web_page.split("tbody");
-    let nosc_table = bodies.nth(1).unwrap();
-    let glitch_table = bodies.nth(1).unwrap();
-    let altsc_table = bodies.nth(1).unwrap();
-    std::mem::drop(bodies);
-    println!("NOSC Table:\n\n{nosc_table}");
-    println!("GLITCH Table:\n\n{glitch_table}");
-    println!("ALTSC Table:\n\n{altsc_table}");
-    */
 }
 
 async fn mkl_mode(mkl_id: String, chadsoft_id: String, chadsoft_track_hash: HashMap<String,String>) {
@@ -633,13 +392,13 @@ async fn mkl_mode(mkl_id: String, chadsoft_id: String, chadsoft_track_hash: Hash
         println!("{} {}","You must link your Chadsoft account with".red(),"` cfg chadsoft <chadsoft-url> `".red().bold());
         exit = true;
     }
-    let chadsoft_times_thread = std::thread::spawn( move || async { grab_times_ctgp(chadsoft_id, chadsoft_track_hash).await });
+    let chadsoft_times_thread = std::thread::spawn( move || async { sr::grab_times_ctgp(chadsoft_id, chadsoft_track_hash).await });
     if mkl_id.is_empty() {
         println!("{} {}","You must link your MKL profile with".red(),"` cfg mkl <mkl-url> `".red().bold());
         exit = true;
     }
     let url = format!("https://www.mkleaderboards.com/mkw/players/{}",mkl_id);
-    let mkl_times_thread = std::thread::spawn( move || async { grab_times_mkl(mkl_id).await });
+    let mkl_times_thread = std::thread::spawn( move || async { sr::grab_times_mkl(mkl_id).await });
     if exit {
         return;
     }
