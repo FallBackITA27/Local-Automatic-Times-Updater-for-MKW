@@ -56,7 +56,7 @@ pub fn welcome_text() {
 	move_cursor_back(1);
     slow_print("||\n||\t\t\t\t\t\t\t\t\t\t".to_string());
 	move_cursor_back(1);
-	slow_print(format!("||\n||\t{} {}{}\t\t\t\t\t\t\t","Written by".purple(),"FalB".purple().bold().on_bright_magenta(),".".purple()));
+	slow_print(format!("||\n||\t{} {}{}\t\t\t\t\t\t\t","Written by".purple(),"FalB".purple().bold(),".".purple()));
 	move_cursor_back(1);
 	slow_print("||\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n".to_string());
 }

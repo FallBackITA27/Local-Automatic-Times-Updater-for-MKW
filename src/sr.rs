@@ -1,3 +1,5 @@
+use std::{string, fmt::format};
+
 pub fn time_to_ms(time: String) -> i32 {
     let mut colon_str_split = time.split(':');
     let mins_str = colon_str_split.next();
@@ -33,4 +35,16 @@ pub fn ms_to_time(mut ms: i32) -> String {
     } else {
         return format!("{}.{:03}",sec,ms);
     }
+}
+
+pub fn date_to_full_date(date: String) -> String {
+    let month_vector = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; 
+    let mut x = date.split("-");
+    let year = x.next().unwrap();
+    let month = month_vector.get(x.next().unwrap().parse::<usize>().unwrap()-1).unwrap();
+    let day = x.next().unwrap();
+    if day.starts_with("0") {
+        return format!("{} {}, {}", month, day.chars().last().unwrap(), year);
+    }
+    return format!("{} {}, {}", month, day, year);
 }
