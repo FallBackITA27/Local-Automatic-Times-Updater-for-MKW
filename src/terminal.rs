@@ -1,6 +1,12 @@
 use colored::Colorize;
 use std::io::Write;
 
+#[cfg(target_os="linux")]
+fn clear() {
+    print!("{}",String::from_utf8(std::process::Command::new("clear").output().unwrap().stdout).unwrap());
+}
+
+#[cfg(target_os="windows")]
 fn clear() {
     print!("{}",String::from_utf8(std::process::Command::new("clear").output().unwrap().stdout).unwrap());
 }
