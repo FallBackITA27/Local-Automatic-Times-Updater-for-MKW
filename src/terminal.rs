@@ -8,7 +8,7 @@ fn clear() {
 
 #[cfg(target_os="windows")]
 fn clear() {
-    print!("{}",String::from_utf8(std::process::Command::new("cls").output().unwrap().stdout).unwrap());
+	std::process::Command::new("cls").status().or_else(|_| std::process::Command::new("clear").status()).unwrap().success()
 }
 
 pub fn flush_stdout() {
