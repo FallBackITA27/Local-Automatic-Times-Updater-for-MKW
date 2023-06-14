@@ -1,7 +1,7 @@
 # Local Automatic Times Updater for MKW
 
 ## What is this?
-| Icon used. Courtesy of u/asblack98 on [this reddit post](https://www.reddit.com/r/MarioKartWii/comments/s41kw9/funky_kong_stadium_logo_remade/) | [![Logo](https://raw.githubusercontent.com/FallBackITA27/Local-Automatic-Times-Updater-for-MKW/main/img/LOCMKWUPD.ico)](https://github.com/FallBackITA27/Auto-Updater-MKL-MKWPP) |
+| Icon used. Courtesy of u/asblack98 on [this reddit post](https://www.reddit.com/r/MarioKartWii/comments/s41kw9/funky_kong_stadium_logo_remade/) | [![Logo](https://raw.githubusercontent.com/FallBackITA27/Local-Automatic-Times-Updater-for-MKW/main/img/LOCMKWUPD.png)](https://github.com/FallBackITA27/Auto-Updater-MKL-MKWPP) |
 |-|-|
 
 A local CLI Tool that replaces the [old extension](https://github.com/FallBackITA27/Auto-Updater-MKL-MKWPP).
