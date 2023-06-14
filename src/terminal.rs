@@ -2,7 +2,7 @@ use colored::Colorize;
 use std::io::Write;
 
 fn clear() {
-    std::process::Command::new("clear").spawn().unwrap();
+    print!("{}",String::from_utf8(std::process::Command::new("clear").output().unwrap().stdout).unwrap());
 }
 
 pub fn flush_stdout() {
