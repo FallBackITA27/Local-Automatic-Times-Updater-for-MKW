@@ -63,6 +63,8 @@ pub fn welcome_text() {
 	slow_print(format!("||\n||\t{} {}{}\t\t\t\t\t\t\t","Written by".purple(),"FalB".purple().bold(),".".purple()));
 	move_cursor_back(1);
 	slow_print("||\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n".to_string());
+	println!("TEST BUILD");
+	println!("\u{001B}[31mTEST\u{001B}[0m ASSS");
 }
 
 pub fn help_command() {
