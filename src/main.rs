@@ -56,7 +56,7 @@ async fn main() {
     let tracks_mkwpp_arr_thread = std::thread::spawn(grab_mkwpp_tracks_array);
     let tracks_mkwpp_arr_combined_thread = std::thread::spawn(grab_mkwpp_combined_tracks_array);
 
-    println!("^<ESC^>[30m [30mBlack[0m (black)");
+    if cfg!(windows) { std::process::Command::new("chcp").arg("65001"); }
     terminal::welcome_text();
 
     let path = std::path::Path::new("./config.cfg");
@@ -71,7 +71,7 @@ async fn main() {
     while !tracks_chadsoft_hash_thread.is_finished() {
         terminal::loading();
     };
-    print!("\t[{}]\n| Chadsoft Track Array","✔".green());
+    print!("\t[{}]\n| Chadsoft Track Array","√".green());
     terminal::flush_stdout();
     let tracks_chadsoft_hash = tracks_chadsoft_hash_thread.join().unwrap().await;
     let all_chadsoft_links = tracks_chadsoft_hash.clone().into_keys().collect::<Vec<String>>();
@@ -79,14 +79,14 @@ async fn main() {
     while !tracks_chadsoft_arr_thread.is_finished() {
         terminal::loading();
     };
-    print!("\t\t[{}]\n| MKWPP Track Array","✔".green());
+    print!("\t\t[{}]\n| MKWPP Track Array","√".green());
     terminal::flush_stdout();
     let tracks_chadsoft_arr = tracks_chadsoft_arr_thread.join().unwrap().await;
 
     while !tracks_mkwpp_arr_thread.is_finished() && !tracks_mkwpp_arr_combined_thread.is_finished() {
         terminal::loading();
     };
-    print!("\t\t[{}]\n| User Data","✔".green());
+    print!("\t\t[{}]\n| User Data","√".green());
     terminal::flush_stdout();
     let tracks_mkwpp_arr = tracks_mkwpp_arr_thread.join().unwrap().await;
     let tracks_mkwpp_combined_arr = tracks_mkwpp_arr_combined_thread.join().unwrap().await;
@@ -95,7 +95,7 @@ async fn main() {
         terminal::loading();
     };
     let mut user = user_thread.join().unwrap();
-    println!("\t\t\t[{}]","✔".green());
+    println!("\t\t\t[{}]","√".green());
 
     let command_list = ["q","quit","help","cfg","run"];
 
@@ -145,7 +145,7 @@ async fn main() {
                             terminal::loading();
                         };
                         user = user_thread.join().unwrap();
-                        println!("\t[{}]","✔".green());
+                        println!("\t[{}]","√".green());
                         println!("{} {} {} {}","Successfully saved".bright_blue(), "CHADSOFTUSER".bright_blue().bold(), "as".bright_blue(), user.chadsoft_id.bright_blue().bold());
                     },
                     "mkwpp" => {
@@ -172,7 +172,7 @@ async fn main() {
                             terminal::loading();
                         };
                         user = user_thread.join().unwrap();
-                        println!("\t[{}]","✔".green());
+                        println!("\t[{}]","√".green());
                         println!("{} {} {} {}","Successfully saved".bright_blue(), "MKWPPUSER".bright_blue().bold(), "as".bright_blue(), user.mkwpp_id.bright_blue().bold());
                     },
                     "mkl" => {
@@ -195,7 +195,7 @@ async fn main() {
                             terminal::loading();
                         };
                         user = user_thread.join().unwrap();
-                        println!("\t[{}]","✔".green());
+                        println!("\t[{}]","√".green());
                         println!("{} {} {} {}","Successfully saved".bright_blue(), "MKWPPUSER".bright_blue().bold(), "as".bright_blue(), user.mkwpp_id.bright_blue().bold());
                     },
                     "reload" => {
@@ -206,7 +206,7 @@ async fn main() {
                             terminal::loading();
                         };
                         user = user_thread.join().unwrap();
-                        println!("\t[{}]","✔".green());
+                        println!("\t[{}]","√".green());
                     },
                     _ => println!("{}","Error! No valid CFG parameter found.".red())
                 }
@@ -292,14 +292,14 @@ async fn mkwpp_mode(mkwpp_id: String, chadsoft_id: String, chadsoft_track_hash: 
         terminal::loading();
     }
     terminal::flush_stdout();
-    println!("\t[{}]","✔".green());
+    println!("\t[{}]","√".green());
     let ctgp_pbs = chadsoft_times_thread.join().unwrap().await;
     print!("MKW Players' Page PBs and Data");
     terminal::flush_stdout();
     while !mkwpp_thread.is_finished() && !mkwpp_grab_name.is_finished() {
         terminal::loading();
     }
-    println!("\t[{}]\n","✔".green());
+    println!("\t[{}]\n","√".green());
     terminal::flush_stdout();
     let mkwpp_pbs = mkwpp_thread.join().unwrap().await;
     let mkwpp_name = mkwpp_grab_name.join().unwrap().await;
@@ -317,7 +317,7 @@ async fn mkwpp_mode(mkwpp_id: String, chadsoft_id: String, chadsoft_track_hash: 
     while !final_3lap_pbs_thread.is_finished() {
         terminal::loading();
     }
-    print!("\t\t[{}]\nComparing Flap Times","✔".green());
+    print!("\t\t[{}]\nComparing Flap Times","√".green());
     terminal::flush_stdout();
     let final_3lap_pbs = final_3lap_pbs_thread.join().unwrap();
     let mut empty_3lap = false;
@@ -328,7 +328,7 @@ async fn mkwpp_mode(mkwpp_id: String, chadsoft_id: String, chadsoft_track_hash: 
     while !final_flap_pbs_thread.is_finished() {
         terminal::loading();
     }
-    println!("\t\t[{}]","✔".green());
+    println!("\t\t[{}]","√".green());
     let final_flap_pbs = final_flap_pbs_thread.join().unwrap();
     if final_flap_pbs.is_empty() {
         println!("You have no unsubmitted Flap PBs");
@@ -432,14 +432,14 @@ async fn mkl_mode(mkl_id: String, chadsoft_id: String, chadsoft_track_hash: Hash
     while !chadsoft_times_thread.is_finished() {
         terminal::loading();
     }
-    print!("\t\t\t[{}]","✔".green());
+    print!("\t\t\t[{}]","√".green());
     let cdpbs = chadsoft_times_thread.join().unwrap().await.get(0).unwrap();
     print!("\nMKLeaderboards PBs and Data");
     terminal::flush_stdout();
     while !mkl_times_thread.is_finished() {
         terminal::loading();
     }
-    print!("\t\t[{}]\n\n","✔".green());
+    print!("\t\t[{}]\n\n","√".green());
     terminal::flush_stdout();*/
     mkl_times_thread.join().unwrap().await;
 }
