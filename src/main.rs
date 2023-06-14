@@ -56,7 +56,7 @@ async fn main() {
     let tracks_mkwpp_arr_thread = std::thread::spawn(grab_mkwpp_tracks_array);
     let tracks_mkwpp_arr_combined_thread = std::thread::spawn(grab_mkwpp_combined_tracks_array);
 
-    if cfg!(windows) { std::process::Command::new("chcp").arg("65001"); }
+    println!("^<ESC^>[30m [30mBlack[0m (black)");
     terminal::welcome_text();
 
     let path = std::path::Path::new("./config.cfg");
