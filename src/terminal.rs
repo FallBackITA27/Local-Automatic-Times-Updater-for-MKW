@@ -7,9 +7,7 @@ fn clear() {
 }
 
 #[cfg(target_os="windows")]
-fn clear() {
-	std::process::Command::new("cls").status().or_else(|_| std::process::Command::new("clear").status()).unwrap().success()
-}
+fn clear() { }
 
 pub fn flush_stdout() {
     std::io::stdout().flush().unwrap();
