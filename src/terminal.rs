@@ -65,6 +65,8 @@ pub fn welcome_text() {
 	slow_print("||\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n".to_string());
 	println!("TEST BUILD");
 	println!("\u{001B}[31mTEST\u{001B}[0m ASSS");
+	println!("\\033[31mTEST\\033[0m ASSS");
+	println!("\033[31mTEST\033[0m ASSS");
 }
 
 pub fn help_command() {
