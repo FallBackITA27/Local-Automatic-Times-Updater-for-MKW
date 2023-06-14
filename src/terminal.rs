@@ -67,6 +67,7 @@ pub fn welcome_text() {
 	println!("\u{001B}[31mTEST\u{001B}[0m ASSS");
 	println!("\\033[31mTEST\\033[0m ASSS");
 	println!("\033[31mTEST\033[0m ASSS");
+	println!("\u{033}[31mTEST\u{033}[0m ASSS");
 }
 
 pub fn help_command() {
