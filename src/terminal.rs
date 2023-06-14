@@ -20,7 +20,7 @@ fn print_loading_dot() {
 }
 
 fn move_cursor_back(num: u8) {
-    const BACKSPACE: char = 8u8 as char;
+    const BACKSPACE: char = '\x7F';
 	for _ in 0..num {
 		print!("{}",BACKSPACE);
 	}
@@ -63,11 +63,6 @@ pub fn welcome_text() {
 	slow_print(format!("||\n||\t{} {}{}\t\t\t\t\t\t\t","Written by".purple(),"FalB".purple().bold(),".".purple()));
 	move_cursor_back(1);
 	slow_print("||\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n".to_string());
-	println!("TEST BUILD");
-	println!("\u{001B}[31mTEST\u{001B}[0m ASSS");
-	println!("\\033[31mTEST\\033[0m ASSS");
-	println!("\033[31mTEST\033[0m ASSS");
-	println!("\u{033}[31mTEST\u{033}[0m ASSS");
 }
 
 pub fn help_command() {

@@ -5,6 +5,7 @@
 use core::panic;
 use std::{collections::HashMap, io::Write};
 use colored::Colorize;
+use iced::Application;
 
 mod terminal;
 mod files;
@@ -21,33 +22,31 @@ macro_rules! read_str {
     };
 }
 
-// https://rosettacode.org/wiki/Levenshtein_distance#Rust
-fn lev_dist(word1: &str, word2: &str) -> u8 {
-    let w1 = word1.chars().collect::<Vec<_>>();
-    let w2 = word2.chars().collect::<Vec<_>>();
- 
-    let word1_length = w1.len() + 1;
-    let word2_length = w2.len() + 1;
- 
-    let mut matrix = vec![vec![0; word1_length]; word2_length];
- 
-    for i in 1..word1_length { matrix[0][i] = i; }
-    for j in 1..word2_length { matrix[j][0] = j; }
- 
-    for j in 1..word2_length {
-        for i in 1..word1_length {
-            let x: usize = if w1[i-1] == w2[j-1] {
-                matrix[j-1][i-1]
-            } else {
-                1 + std::cmp::min(
-                        std::cmp::min(matrix[j][i-1], matrix[j-1][i])
-                        , matrix[j-1][i-1])
-            };
-            matrix[j][i] = x;
-        }
+struct IcedApp;
+
+impl iced::Application for IcedApp {
+    type Executor = iced::executor::Default;
+    type Flags = ();
+    type Message = ();
+    type Theme = iced::Theme;
+
+    fn new(flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
+        (IcedApp, iced::Command::none())
     }
-    matrix[word2_length-1][word1_length-1] as u8
+
+    fn title(&self) -> String {
+        String::from("LOCMKWUPD")
+    }
+
+    fn update(&mut self, _message: Self::Message) -> iced::Command<Self::Message> {
+        iced::Command::none()
+    }
+
+    fn view(&self) -> iced::Element<Self::Message> {
+        "Test".into()
+    }
 }
+
 
 #[tokio::main]
 async fn main() {
@@ -56,7 +55,8 @@ async fn main() {
     let tracks_mkwpp_arr_thread = std::thread::spawn(grab_mkwpp_tracks_array);
     let tracks_mkwpp_arr_combined_thread = std::thread::spawn(grab_mkwpp_combined_tracks_array);
 
-    if cfg!(windows) { std::process::Command::new("chcp").arg("65001"); }
+    IcedApp::run(iced::Settings::default()).unwrap();
+
     terminal::welcome_text();
 
     let path = std::path::Path::new("./config.cfg");
@@ -98,7 +98,7 @@ async fn main() {
     println!("\t\t\t[{}]","√".green());
 
     let command_list = ["q","quit","help","cfg","run"];
-
+/*
     loop {
         print!("\n>> ");
         terminal::flush_stdout();
@@ -242,7 +242,7 @@ async fn main() {
                 println!("Did you mean {}?",suggestion.bold());
             }
         }
-    }
+    }*/
 }
 
 async fn grab_chadsoft_tracks_array() -> Vec<[String; 2]> {
