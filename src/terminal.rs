@@ -2,7 +2,7 @@ use colored::Colorize;
 use std::io::Write;
 
 fn clear() {
-    println!("\x1b[2J\x1b[H");
+    println!("\\e[2J\\e[H");
 }
 
 pub fn flush_stdout() {
