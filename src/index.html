@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Local MKW Times Updater</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="/main.js" defer></script>
+  </head>
+  <body>
+    <div id="loading_div">
+      <h1 id="loading_text">Loading&nbsp;the&nbsp;application</h1>
+    </div>
+    <div id="popups_div"></div>
+    <main>
+      <fieldset id="settings_div">
+        <legend>Options</legend>
+        <input id="chadsoftInput" placeholder="chadsoft url" type="text">
+        <input id="mkwppInput" placeholder="mkwpp url" type="text">
+        <input id="mklInput" placeholder="mkl url" type="text">
+        <button id="saveOptions">Save</button>
+      </fieldset>
+      <fieldset id="updater_div">
+        <legend>Updaters</legend>
+        <button id="mkwppUpdaterButton">Run MKWPP Updater</button>
+      </fieldset>
+    </main>
+  </body>
+</html>

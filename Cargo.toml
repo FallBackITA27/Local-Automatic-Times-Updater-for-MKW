@@ -1,13 +1,31 @@
+[[bin]]
+name = "local-mkw-times-updater"
+path = "src-tauri/src/main.rs"
+
 [package]
-name = "LOCMKWUPD"
+name = "local-mkw-times-updater"
 version = "0.1.0"
 edition = "2021"
+description = "Local MKW Times Updater made in Tauri because I couldn't figure out Iced.rs"
+authors = ["FalB"]
+license = ""
+repository = ""
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+tauri = { version = "1.4", features = ["shell-open"] }
 reqwest = "*"
 tokio = { version = "1.28.2", features = ["full"] }
-serde_json = "1.0.91"
-serde = { version = "1.0.152", features = ["derive"] }
+serde_json = "1.0.96"
+serde = { version = "1.0.164", features = ["derive"] }
 colored = "*"
+iced = "*"
+
+[build-dependencies]
+tauri-build = { version = "1.4", features = [] }
+
+[features]
+# this feature is used for production builds or when `devPath` points to the filesystem
+# DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]
