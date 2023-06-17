@@ -45,6 +45,17 @@ let loading_anim = setInterval(function () {
   count_loading_dots++;
 }, 1000);
 
+/**
+ * Checks for updates.
+ * @returns {null}
+ */
+async function checkUpd() {
+  invoke(check_for_update).then(r=>{
+    if (r===1) {
+      addPopup("Updates available! <a href=\"https://github.com/FallBackITA27/Local-Automatic-Times-Updater-for-MKW/releases\">Click here</a>","ok");
+    }
+  });
+}
 
 /**
  * Reads the config.cfg file from the CWD and sets the values in the Options fieldset.
@@ -60,6 +71,7 @@ async function readConfig(){
   });
 }
 
+checkUpd();
 readConfig();
 clearInterval(loading_anim);
 document.getElementsByTagName("main")[0].classList.toggle("off");

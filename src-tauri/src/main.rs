@@ -1,12 +1,9 @@
-/*
-    NOTE: A lot of functions should be moved to sr.rs. I am not in the vein of doing it right now, I will probably one of these days.
-*/
-
 // Prevents additional console window on Windows in release
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::{collections::HashMap, io::Write, str::FromStr};
 use colored::Colorize;
+use serde_json::Value;
 
 mod jsondata;
 mod files;
@@ -14,6 +11,17 @@ mod sr;
 
 #[allow(clippy::needless_return)]
 #[deny(clippy::needless_borrow)]
+
+#[tauri::command]
+async fn check_for_update() -> u8 {
+    let req = reqwest::get("https://api.github.com/repos/FallBackITA27/Local-Automatic-Times-Updater-for-MKW/releases").await.unwrap().text().await.unwrap();
+    let x: Vec<Value> = serde_json::from_str(&req).unwrap();
+    if x.len() == 1 {
+        return 0;
+    } else {
+        return 1;
+    }
+}
 
 fn main() {
     tauri::Builder::default()
