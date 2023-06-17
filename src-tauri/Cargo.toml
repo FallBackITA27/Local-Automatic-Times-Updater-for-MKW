@@ -1,6 +1,6 @@
 [[bin]]
 name = "local-mkw-times-updater"
-path = "src-tauri/src/main.rs"
+path = "src/main.rs"
 
 [package]
 name = "local-mkw-times-updater"
@@ -11,7 +11,7 @@ authors = ["FalB"]
 license = ""
 repository = ""
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 tauri = { version = "1.4", features = ["shell-open"] }

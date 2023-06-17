@@ -50,7 +50,7 @@ let loading_anim = setInterval(function () {
  * @returns {null}
  */
 async function checkUpd() {
-  invoke(check_for_update).then(r=>{
+  invoke("check_for_update").then(r=>{
     if (r===1) {
       addPopup("Updates available! <a href=\"https://github.com/FallBackITA27/Local-Automatic-Times-Updater-for-MKW/releases\">Click here</a>","ok");
     }

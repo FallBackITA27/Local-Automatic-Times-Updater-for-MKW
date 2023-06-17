@@ -15,7 +15,13 @@ mod sr;
 #[tauri::command]
 async fn check_for_update() -> u8 {
     let req = reqwest::get("https://api.github.com/repos/FallBackITA27/Local-Automatic-Times-Updater-for-MKW/releases").await.unwrap().text().await.unwrap();
-    let x: Vec<Value> = serde_json::from_str(&req).unwrap();
+    let x: Vec<Value> = match serde_json::from_str(&req) {
+        Ok(x) => x,
+        Err(error) => {
+            println!("{error:?}");
+            return 0;
+        }
+    };
     if x.len() == 1 {
         return 0;
     } else {
@@ -26,6 +32,7 @@ async fn check_for_update() -> u8 {
 fn main() {
     tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![
+        check_for_update,
         files::read_config,
         save_chadsoft_user,
         save_mkl_user,
