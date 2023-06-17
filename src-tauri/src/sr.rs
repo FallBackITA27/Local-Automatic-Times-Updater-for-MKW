@@ -1,4 +1,7 @@
-use std::{string, fmt::format, collections::HashMap};
+use std::collections::HashMap;
+
+#[path ="./jsondata.rs"]
+mod jsondata;
 
 pub fn time_to_ms(time: String) -> i32 {
     let mut colon_str_split = time.split(':');
@@ -66,7 +69,10 @@ fn filter_ctgp_hashmap(mut ctgp_hashmap: HashMap<String,(i32,String,String,Strin
     return ctgp_hashmap;
 }
 
-pub async fn grab_times_ctgp(chadsoft_id: String, track_hash: HashMap<String,String>) -> [HashMap<String,(i32,String,String,String)>; 2] {
+pub async fn grab_times_ctgp(chadsoft_id: String) -> Result<[HashMap<String,(i32,String,String,String)>; 2], String> {
+
+    let track_hash_thread = std::thread::spawn(jsondata::grab_chadsoft_tracks_hashmap);
+
     let url = format!("https://tt.chadsoft.co.uk/players/{}.json",chadsoft_id);
     let mut text = reqwest::get(&url).await.unwrap().text().await.unwrap();
     text.remove(0); // WTF Chadsoft. https://discord.com/channels/485882824881209345/485900922468433920/1102240594174148729 (The Bean Corner Discord).
@@ -75,15 +81,19 @@ pub async fn grab_times_ctgp(chadsoft_id: String, track_hash: HashMap<String,Str
         Err(error) => {
             let err_str = error.to_string();
             if err_str.contains("The resource cannot be found.") {
-                panic!("Chadsoft is down, it cannot load the data.");
+                return Err("Chadsoft is down, it cannot load the data.".to_string());
             } else {
-                panic!("{text}, {error}");
+                return Err(format!("Unknown Error: {text}, {err_str}"))
             }
         }
     };
+
     let mut times_3lap_map: HashMap<String,(i32,String,String,String)> = HashMap::default();
     let mut times_flap_map: HashMap<String,(i32,String,String,String)> = HashMap::default();
     let ghosts = json["ghosts"].as_array().unwrap();
+
+    let track_hash = track_hash_thread.join().unwrap().await;
+
     for ghost in ghosts {
         let track_link = ghost["_links"]["leaderboard"]["href"].as_str().unwrap().to_string();
         let track_name = match track_hash.get(&track_link) {
@@ -114,10 +124,10 @@ pub async fn grab_times_ctgp(chadsoft_id: String, track_hash: HashMap<String,Str
         };
     }
 
-    return [
+    return Ok([
         std::thread::spawn(move || { filter_ctgp_hashmap(times_3lap_map) }).join().unwrap(),
         std::thread::spawn(move || { filter_ctgp_hashmap(times_flap_map) }).join().unwrap()
-    ];
+    ]);
 }
 
 pub fn date_to_full_date(date: String) -> String {
@@ -200,7 +210,10 @@ pub async fn grab_name_mkwpp(mkwpp_id: String) -> String {
     return "Name: ".to_string() + split.split("&nbsp;").next().unwrap();
 }
 
-pub async fn grab_times_mkwpp(mkwpp_id: String, track_arr: Vec<String>) -> [HashMap<String,i32>; 2] {
+pub async fn grab_times_mkwpp(mkwpp_id: String) -> [HashMap<String,i32>; 2] {
+    
+    let track_arr_thread = std::thread::spawn(jsondata::grab_mkwpp_tracks_array);
+    
     let url = format!("https://www.mariokart64.com/mkw/profile.php?pid={}",mkwpp_id);
     let player_page_req = reqwest::get(&url);
 
@@ -217,6 +230,8 @@ pub async fn grab_times_mkwpp(mkwpp_id: String, track_arr: Vec<String>) -> [Hash
     let nosc_body = split.nth(3).unwrap();
     let mut split_rows_nosc = nosc_body.split("tr");
     split_rows_nosc.nth(2);
+
+    let track_arr = track_arr_thread.join().unwrap().await;
 
     for row in split_rows_nosc {
         if skip {
